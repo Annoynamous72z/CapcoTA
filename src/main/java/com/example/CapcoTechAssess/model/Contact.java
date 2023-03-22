@@ -12,11 +12,8 @@ public class Contact {
     private String email;
     private String address;
 
-    public Contact() {
-
-    }
-
-    public Contact(String firstName, String lastName, String phoneNumber, String email, String address){
+    public Contact(long id, String firstName, String lastName, String phoneNumber, String email, String address){
+        this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;

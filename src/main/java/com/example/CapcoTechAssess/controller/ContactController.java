@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/capcoapi/assessment")
@@ -17,38 +18,85 @@ public class ContactController {
     private ContactRepository contactRepository;
 
     @GetMapping("/contacts")
-    public List<Contact> getAllContacts() {
-        return contactRepository.findAll();
+    public ResponseEntity<List<Contact>> getAllContacts() {
+        try {
+            return new ResponseEntity<>(contactRepository.findAll(), HttpStatus.OK);
+        } catch (Exception e){
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping("/contacts/{id}")
+    public ResponseEntity<Contact> getContact(@PathVariable(value = "id") Long contactID){
+        try {
+            Optional<Contact> contact = contactRepository.findById(contactID);
+            if (contact.isPresent()) {
+                return new ResponseEntity<>(contact.get(), HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e){
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PostMapping("/contacts")
-    public Contact createEmployee(@Valid @RequestBody Contact contact) {
-        return contactRepository.save(contact);
+    public ResponseEntity<Contact> createContact(@Valid @RequestBody Contact contact) {
+        try {
+            Contact savedContact = contactRepository.save(contact);
+            return new ResponseEntity<>(savedContact, HttpStatus.OK);
+        } catch (Exception e){
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     @PutMapping("/contacts/{id}")
     public ResponseEntity<Contact> updateContact(@PathVariable(value = "id") Long contactID,
-                                                 @Valid @RequestBody Contact newContactInfo) throws Exception {
-        Contact contact = contactRepository.findById(contactID)
-                .orElseThrow(() -> new Exception("Contact not found for this id :: " + contactID));
+                                                 @Valid @RequestBody Contact newContactInfo){
+        try {
+            Optional<Contact> contact = contactRepository.findById(contactID);
 
-        contact.setFirstName(newContactInfo.getFirstName());
-        contact.setLastName(newContactInfo.getLastName());
-        contact.setAddress(newContactInfo.getAddress());
-        contact.setPhoneNumber(newContactInfo.getPhoneNumber());
-        contact.setEmail(newContactInfo.getEmail());
+            if (contact.isPresent()) {
+                Contact oldContact = contact.get();
+                oldContact.setFirstName(newContactInfo.getFirstName());
+                oldContact.setLastName(newContactInfo.getLastName());
+                oldContact.setAddress(newContactInfo.getAddress());
+                oldContact.setPhoneNumber(newContactInfo.getPhoneNumber());
+                oldContact.setEmail(newContactInfo.getEmail());
 
-        final Contact updatedContact = contactRepository.save(contact);
+                final Contact updatedContact = contactRepository.save(oldContact);
+                return new ResponseEntity<>(updatedContact, HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch (Exception e){
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
-        return ResponseEntity.ok(updatedContact);
     }
 
     @DeleteMapping("/contacts/{id}")
-    public ResponseEntity<Contact> deleteContact(@PathVariable(value = "id") Long contactID) throws Exception {
-        Contact contact = contactRepository.findById(contactID)
-                .orElseThrow(() -> new Exception("Contact not found for this id :: " + contactID));
+    public ResponseEntity<Contact> deleteContact(@PathVariable(value = "id") Long contactID){
+        try {
+            Optional<Contact> contact = contactRepository.findById(contactID);
+            if (contact.isPresent()) {
+                contactRepository.delete(contact.get());
+                return new ResponseEntity<>(contact.get(), HttpStatus.OK);
+            }else {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+        } catch(Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
-        contactRepository.delete(contact);
-        return new ResponseEntity<>(contact, HttpStatus.OK);
+    }
+    @DeleteMapping("/contacts")
+    public ResponseEntity<HttpStatus> deleteAll(){
+        try {
+            contactRepository.deleteAll();
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch(Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
